@@ -1,5 +1,3 @@
-// ImageProcessor.cpp
-
 #include "ImageProcessor.h" // 対応するヘッダーをインクルード
 #include <iostream>
 

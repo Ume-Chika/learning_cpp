@@ -1,3 +1,4 @@
 *.exe
-.vscode
+.vscode/
 CMake/build
+OpenCV/build

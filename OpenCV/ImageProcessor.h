@@ -3,7 +3,7 @@
 #pragma once // ヘッダーが複数回インクルードされるのを防ぐおまじない
 
 #include <string>
-#include <opencv/opencv.hpp>
+#include <opencv2/opencv.hpp>
 
 class ImageProcessor {
 public:
