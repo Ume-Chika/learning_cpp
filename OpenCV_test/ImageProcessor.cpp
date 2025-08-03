@@ -1,7 +1,19 @@
 #include "ImageProcessor.h" // 対応するヘッダーをインクルード
 #include <iostream>
 
+/* 宣言と定義の分離②
+cppファイルでは定義を！
+    「スコープ解決演算子」を使用する
+        この関数がどのくらずに所属しているかを明示する
+    いつも通り、引数、処理内容、returnを書けばいい
+*/
+
 // コンストラクタの実装
+/* メンバ初期化リストを使用
+目的：コンストラクタの本体{}が実行される前に、メンバ変数を効率的に初期化する方法
+    通常、window_nameという変数にコピーされ、それをwin_nameにコピーするという運び
+    メンバ初期化リストを使うと引数を直にwin_nameにぶちこめる → 早い！変な型であればなお早い！
+*/
 ImageProcessor::ImageProcessor(const std::string& window_name) : win_name(window_name) {
     // 初期化リストを使ってメンバ変数を初期化
 }

@@ -1,10 +1,12 @@
-// ImageProcessor.h
-
 #pragma once // ヘッダーが複数回インクルードされるのを防ぐおまじない
 
 #include <string>
 #include <opencv2/opencv.hpp>
 
+/* 宣言と定義の分離①
+ヘッダーファイルには宣言を！
+    関数の詳細のみcppファイルで定義
+*/
 class ImageProcessor {
 public:
     // コンストラクタ：ウィンドウ名を指定して初期化

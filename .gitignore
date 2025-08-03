@@ -1,4 +1,4 @@
 *.exe
 .vscode/
 CMake/build
-OpenCV/build
+OpenCV_test/build

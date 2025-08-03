@@ -5,6 +5,8 @@
 
 int main(int argc, char** argv) {
     if (argc != 2) {
+        // argv[0]には「./実行ファイルパス」が入るはず
+        // argc == 2 の時が正常で「./実行ファイルパス 画像ファイルパス」となるはず
         std::cerr << "使い方: " << argv[0] << " <画像ファイルのパス>" << std::endl;
         return -1;
     }
