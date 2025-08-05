@@ -1,6 +1,9 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
 
+#include <thread>   // std::this_thread::sleep_for のために必要
+#include <chrono>   // std::chrono::milliseconds などの時間単位のために必要
+
 int main(int argc, char** argv) {
     // 1. カメラを開く
     // 複数のカメラが接続されている場合は、1, 2, ... と数字を変えて試します。
@@ -26,16 +29,24 @@ int main(int argc, char** argv) {
 
     // 2. フレームを格納するためのMatオブジェクトを準備
     cv::Mat frame;
+    int empty_fream_count = 0; // カメラの起動まで見逃す回数
 
     // 3. 無限ループでカメラ映像を取得し続ける
     while (true) {
         // カメラから新しいフレームを1枚キャプチャする
         cap >> frame; // cap.read(frame) と同じ意味
 
-        // フレームが空の場合はループを抜ける (映像の終端など)
-        if (frame.empty()) {
+
+        if (frame.empty()) { // フレームが空の場合の処理
             std::cerr << "エラー: 空のフレームを受信しました。" << std::endl;
-            break;
+
+            if (empty_fream_count > 100) {
+                std::cerr << "エラー：フレームを連続で取得できませんでした" << std::endl;
+                break; // ループから脱出
+            }
+            empty_fream_count++;
+            std::this_thread::sleep_for(std::chrono::milliseconds(10)); // 10ミリ秒待機
+            continue; // 先頭へ戻る
         }
 
         // 4. "Live Camera" という名前のウィンドウにフレームを表示
