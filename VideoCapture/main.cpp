@@ -4,22 +4,40 @@
 #include <thread>   // std::this_thread::sleep_for のために必要
 #include <chrono>   // std::chrono::milliseconds などの時間単位のために必要
 
+bool try_cap (cv::VideoCapture& cap, cv::Mat& frame) {
+    // カメラの起動を1秒間待って、空でないフレームを取得できたかを返す。
+    int empty_fream_count = 0;
+    const int max_empty_fream = 100; // 10 ms * max_empty_fream 待機
+    while (frame.empty() && empty_fream_count < 100){
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        cap >> frame;
+        empty_fream_count++;
+    }
+    return !frame.empty();
+}
+
+// GStreamerのパイプライン文字列を生成する関数
+std::string gstreamer_pipeline_for_libcamera(int camera_index, int width, int height, int framerate) {
+    // camera-indexプロパティでカメラを指定
+    return "libcamerasrc camera-index=" + std::to_string(camera_index) +
+            " ! video/x-raw, width=" + std::to_string(width) +
+            ", height=" + std::to_string(height) +
+            ", framerate=" + std::to_string(framerate) + "/1 ! videoconvert ! appsink";
+}
+
 int main(int argc, char** argv) {
     // 1. カメラを開く
     // 複数のカメラが接続されている場合は、1, 2, ... と数字を変えて試します。
     cv::VideoCapture cap;
+    int target_camera;
     if (argc == 1) {
         // 指定がなければデフォルトカメラを使用
-        cap.open(0);
+        target_camera = 0;
     } else if (argc != 1) {
         // 指定があればそれを使用
-        try {
-            cap.open(std::stoi(argv[1]));
-        } catch (const std::exception& e) {
-            std::cerr << "エラーが発生：" << e.what() << std::endl;
-            return -1;
-        }
+        target_camera = std::stoi(argv[1]);
     }
+    cap.open(target_camera);
 
     // カメラが正常に開けたかを確認
     if (!cap.isOpened()) {
@@ -29,24 +47,31 @@ int main(int argc, char** argv) {
 
     // 2. フレームを格納するためのMatオブジェクトを準備
     cv::Mat frame;
-    int empty_fream_count = 0; // カメラの起動まで見逃す回数
+
+    // 2.5 カメラの起動テスト & libcamera用のパイプラインを試す
+    if (!try_cap(cap, frame)) {
+        std::cerr << "エラー: カメラからフレームを取得できませんでした。" << std::endl;
+
+        std::cerr << "libcamera用のパイプラインを試します" << std::endl;
+        cap.release(); // カメラデバイスを解放
+        std::string pipeline = gstreamer_pipeline_for_libcamera(target_camera, 1280, 720, 30);
+        cap.open(pipeline, cv::CAP_GSTREAMER);
+        if (!cap.isOpened()) {
+            std::cerr << "エラー: libcamera用のパイプラインでカメラを開けませんでした。" << std::endl;
+            return -1;
+        } else {
+            std::cout << "libcamera用のパイプラインでカメラを開きました。" << std::endl;
+        }
+    }
 
     // 3. 無限ループでカメラ映像を取得し続ける
     while (true) {
         // カメラから新しいフレームを1枚キャプチャする
         cap >> frame; // cap.read(frame) と同じ意味
 
-
         if (frame.empty()) { // フレームが空の場合の処理
             std::cerr << "エラー: 空のフレームを受信しました。" << std::endl;
-
-            if (empty_fream_count > 100) {
-                std::cerr << "エラー：フレームを連続で取得できませんでした" << std::endl;
-                break; // ループから脱出
-            }
-            empty_fream_count++;
-            std::this_thread::sleep_for(std::chrono::milliseconds(10)); // 10ミリ秒待機
-            continue; // 先頭へ戻る
+            break; // ループから脱出
         }
 
         // 4. "Live Camera" という名前のウィンドウにフレームを表示
