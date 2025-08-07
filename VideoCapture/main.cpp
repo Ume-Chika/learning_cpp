@@ -10,6 +10,7 @@ bool try_cap (cv::VideoCapture& cap, cv::Mat& frame) {
     const int max_empty_fream = 100; // 10 ms * max_empty_fream 待機
     while (frame.empty() && empty_fream_count < 100){
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::cout << "空のフレームを取得（" << empty_fream_count << "回目）" << std::endl;
         cap >> frame;
         empty_fream_count++;
     }
@@ -18,11 +19,10 @@ bool try_cap (cv::VideoCapture& cap, cv::Mat& frame) {
 
 // GStreamerのパイプライン文字列を生成する関数
 std::string gstreamer_pipeline_for_libcamera(int camera_index, int width, int height, int framerate) {
-    // camera-indexプロパティでカメラを指定
-    return "libcamerasrc camera-index=" + std::to_string(camera_index) +
-            " ! video/x-raw, width=" + std::to_string(width) +
-            ", height=" + std::to_string(height) +
-            ", framerate=" + std::to_string(framerate) + "/1 ! videoconvert ! appsink";
+    // IMX708カメラを明示的に指定、動作作人済みのNV12フォーマットを使用
+    return "libcamerasrc camera-name=imx708 ! video/x-raw,width=" + std::to_string(width) +
+           ",height=" + std::to_string(height) +
+           ",format=NV12,framerate=" + std::to_string(framerate) + "/1 ! videoconvert ! appsink";
 }
 
 int main(int argc, char** argv) {
@@ -55,12 +55,18 @@ int main(int argc, char** argv) {
         std::cerr << "libcamera用のパイプラインを試します" << std::endl;
         cap.release(); // カメラデバイスを解放
         std::string pipeline = gstreamer_pipeline_for_libcamera(target_camera, 1280, 720, 30);
+        std::cout << "使用するパイプライン" << pipeline << std::endl;
+        setenv("GST_DEBUG", "3", 1);
         cap.open(pipeline, cv::CAP_GSTREAMER);
         if (!cap.isOpened()) {
             std::cerr << "エラー: libcamera用のパイプラインでカメラを開けませんでした。" << std::endl;
             return -1;
         } else {
             std::cout << "libcamera用のパイプラインでカメラを開きました。" << std::endl;
+            if (!try_cap(cap, frame)) {
+                std::cerr << "エラー: カメラからフレームを取得できませんでした。" << std::endl;
+                return -1;
+            }
         }
     }
 
