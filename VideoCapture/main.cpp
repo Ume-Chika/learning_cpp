@@ -19,23 +19,23 @@ bool try_cap (cv::VideoCapture& cap, cv::Mat& frame) {
 
 // GStreamerのパイプライン文字列を生成する関数
 std::string gstreamer_pipeline_for_libcamera(int camera_index, int width, int height, int framerate) {
-    // IMX708カメラを明示的に指定、動作作人済みのNV12フォーマットを使用
     return "libcamerasrc camera-name=imx708 ! video/x-raw,width=" + std::to_string(width) +
            ",height=" + std::to_string(height) +
-           ",format=NV12,framerate=" + std::to_string(framerate) + "/1 ! videoconvert ! appsink";
+           ",format=NV12,framerate=" + std::to_string(framerate) + "/1 ! videoconvert ! video/x-raw,format=BGR ! appsink drop=1";
 }
 
 int main(int argc, char** argv) {
     // 1. カメラを開く
     // 複数のカメラが接続されている場合は、1, 2, ... と数字を変えて試します。
     cv::VideoCapture cap;
-    int target_camera;
-    if (argc == 1) {
-        // 指定がなければデフォルトカメラを使用
-        target_camera = 0;
-    } else if (argc != 1) {
-        // 指定があればそれを使用
-        target_camera = std::stoi(argv[1]);
+    int target_camera = 0;
+    if (argc > 1) {
+        try {
+            target_camera = std::stoi(argv[1]);
+        } catch (const std::exception& e) {
+            std::cerr << "エラー: カメラインデックスが不正です。" << std::endl;
+            return -1;
+        }
     }
     cap.open(target_camera);
 
